@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from .models import Driver, DriverLocation, DriverRidesHistory
+from .models import Driver, DriverLocation
 
 
 class DriverRegistrationSerializer(serializers.ModelSerializer):
@@ -51,23 +51,55 @@ class DriverLocationSerializer(serializers.Serializer):
         obj.save()
         return obj
 
-class GetAvailableRidesSerializer(serializers.Serializer):
+
+class GetAvailableCabSerializer(serializers.Serializer):
     Source_address = serializers.CharField()
     Destination_address = serializers.CharField()
 
     def validate(self, data):
         return data
 
-class PassengerTravelHistorySerializer(serializers.ModelSerializer):
 
-    class Meta:
-        model = DriverRidesHistory
-        fields = ['source_address',
-                  'destination_address',
-                  'car_no',
-                  'booked_time',
-                  'passenger_name']
 
+
+class BookCabSerializer(serializers.Serializer):
+    car_no = serializers.CharField()
+
+    def validate(self, data):
+        car_no = data.get("car_no")
+
+        if not car_no:
+            raise ValidationError("Car Number is required")
+        try:
+            driver = Driver.objects.get(car_no=car_no)
+        except Driver.DoesNotExist:
+            raise ValidationError("Car with this number does not exist")
+
+        return data
+
+    def create(self, validated_data):
+        car_no = validated_data.pop('car_no')
+        passenger_id = self.context.get("passenger_id")
+        source = self.context.get("source_address")
+        destination = self.context.get("destination_address")
+        passenger = Passenger.objects.get(pk=passenger_id)
+        driver = Driver.objects.get(car_no=car_no)
+        obj1 = TravelHistory()
+        obj1.passenger_id = passenger
+        obj1.driver_id = driver
+        obj1.car_no = driver.car_no
+        obj1.source_address = source
+        obj1.destination_address = destination
+        obj1.save()
+        obj = DriverRidesHistory()
+        obj.driver_id = driver
+        obj.car_no = car_no
+        obj.passenger_id = passenger
+        obj.source_address = source
+        obj.passenger_name = passenger.first_name + passenger.last_name
+        obj.destination_address = destination
+        obj.save()
+        return obj
 
 class DriverInfoSerializer(serializers.ModelSerializer):
     class Meta:

@@ -26,15 +26,3 @@ class DriverLocation(models.Model):
     longitude = DecimalField(max_digits=9, decimal_places=6)
 
 
-class DriverRidesHistory(models.Model):
-    """
-    Stores ride history for drivers
-    """
-
-    driver_id = models.ForeignKey(Driver, on_delete=models.CASCADE)
-    passenger_id = models.ForeignKey('passengerAPI.Passenger', on_delete=models.CASCADE)
-    source_address = models.TextField()
-    destination_address = models.TextField()
-    booked_time = models.DateTimeField(auto_now_add=True)
-    car_no = models.CharField(max_length=80, unique=True)
-    passenger_name = models.CharField(max_length=80)

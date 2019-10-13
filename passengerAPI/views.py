@@ -81,7 +81,7 @@ class  setLocation(APIView):
 
 
 
-class requestRide(APIView):
+class RequestRide(APIView):
 
     """
     This function makes a request to book cab by entering car_no,
@@ -113,11 +113,9 @@ class isRideAccepted(APIView):
     def get(self, request, format=None):
         req = request.GET['passenger_id']
         ra = list(requestRide.objects.all())
-        print(ra)
         for e in ra:
            if e.passenger_id == req:
                return e.booking_status
-
         return -1
 
 

@@ -7,15 +7,19 @@ from django.db import models
 from django.db.models import DecimalField
 
 
+
 class Passenger(models.Model):
-    """
-    Stores passenger info
-    """
+
     first_name = models.CharField(max_length=80)
     last_name = models.CharField(max_length=80)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=200)
     number = models.IntegerField(unique=True)
+
+    def _str_(self):
+        return str(self.number)
+
+
 
 class setLocation(models.Model):
     """
@@ -28,8 +32,8 @@ class setLocation(models.Model):
     longitude = DecimalField(max_digits=9, decimal_places=6)
 
 class requestRide(models.Model):
-    passenger_id = models.IntegerField()
-    driver_id = models.IntegerField()
+    passenger_id = models.ForeignKey(Passenger, on_delete=models.CASCADE)
+    driver_id = models.ForeignKey('driverAPI.Driver', on_delete=models.CASCADE)
     source_address = models.TextField()
     destination_address = models.TextField()
     booking_status = models.IntegerField()
