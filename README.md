@@ -40,7 +40,7 @@ a. Login using the details of the superuser created
 b. create one or more passenger and driver objects in the driverAPI and passenger API ,clicking on the +Add green link.
  
 
-### passengerEndpoints(http:127.0.0.1:8000/api/v1/passenger/)
+### passengerEndpoints(http://127.0.0.1:8000/api/v1/passenger/)
 
 ```
 1. Setting the location by entering the latitude and the longitude : http://127.0.0.1:8000/api/v1/passenger/RequestRide
@@ -48,7 +48,7 @@ b. create one or more passenger and driver objects in the driverAPI and passenge
 3.  Check for the ride acceptance by proving the passenger_id and checking the booking_status- http://127.0.0.1:8000/api/v1/passenger/isRideAccepted/
 ``` 
 
-### DriverEndpoints(http:127.0.0.1:8000/api/v1/driver/)
+### DriverEndpoints(http://127.0.0.1:8000/api/v1/driver/)
 
 ```
 1. See all available rides by entering source and destination address - http://127.0.0.1:8000/api/v1/driver/available_passengers/
