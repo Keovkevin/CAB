@@ -38,31 +38,30 @@ Base URL :  (http://127.0.0.1:8000/api/v1/)
 ```
 a. Login using the details of the superuser created
 b. create one or more passenger and driver objects in the driverAPI and passenger API ,clicking on the +Add green link.
- 
-
-### passengerEndpoints(http://127.0.0.1:8000/api/v1/passenger/)
-
-```
-1. Setting the location by entering the latitude and the longitude : http://127.0.0.1:8000/api/v1/passenger/RequestRide
-2. Requesting a cab by proving latitude and longitude of the destination, set booking_id = 0, use passenger-id and driver_id created previously - http://127.0.0.1:8000/api/v1/passenger/setLocation/
-3.  Check for the ride acceptance by proving the passenger_id and checking the booking_status- http://127.0.0.1:8000/api/v1/passenger/isRideAccepted/
 ``` 
 
-### DriverEndpoints(http://127.0.0.1:8000/api/v1/driver/)
-
+#### passengerEndpoints(http://127.0.0.1:8000/api/v1/passenger)
 ```
-1. See all available rides by entering source and destination address - http://127.0.0.1:8000/api/v1/driver/available_passengers/
-2. Accepting the cab and changing the booking_status = 1 and deleting the availaible rides from the list of available rides.
+a. Setting the location by entering the latitude and the longitude : http://127.0.0.1:8000/api/v1/passenger/RequestRide
+b. Requesting a cab by proving latitude and longitude of the destination, set booking_id = 0, use passenger-id and driver_id created previously - http://127.0.0.1:8000/api/v1/passenger/setLocation/
+c.  Check for the ride acceptance by proving the passenger_id and checking the booking_status- http://127.0.0.1:8000/api/v1/passenger/isRideAccepted/
+``` 
+
+#### driverEndpoints(http://127.0.0.1:8000/api/v1/driver/)
+```
+a. See all available rides by entering source and destination address - http://127.0.0.1:8000/api/v1/driver/available_passengers/
+b. Accepting the cab and changing the booking_status = 1 and deleting the availaible rides from the list of available rides.
 - http://127.0.0.1:8000/api/v1/driver/accept_cab
 ```
 
-#### Can Use latitude and longitude from - (https://www.latlong.net/) 
+```
+Can Use latitude and longitude from - (https://www.latlong.net/) 
+```
 
 RANGE:[-90,90]
 
 ```
-Simple logging is used.
-logger.info(),logger.warnings(),logger.error() are used.
+a.Simple logging is used-logger.info(),logger.warnings(),logger.error() are used.
 ```
 
 
