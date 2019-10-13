@@ -1,4 +1,4 @@
-# Cab-Booking-System
+# RIDER-USER APIS
 
 ### _Tech stack used_
 ```
@@ -9,6 +9,8 @@
 #### Installation
 
 ##### clone or download and extract the project directory 
+
+### check for the python version,should be version 3+
 1. Create a virtualenv (better to work in virtualenv)  
 ```
 a. virtualenv env
@@ -19,28 +21,46 @@ b. cd env
 a. cd Cab-Booking-System
 b. pip install requirements.txt
 ```
+3. Initialization of Project
+```
+a. python manage.py makemigrations
+b. python manage.py migrate
+c. python manage.py migrate --run-syncdb
+d. python manage.py createsuperuser (provide username,email,password)
+e. python manage.py runserver
+```
+### Running the APIs. There are two apps in this project (driverAPI, passengerAPI)
 
-### Running the APIs. There are two apps in this project (Driver, Passenger)
+Base URL :  (http:127.0.0.1:8000/api/v1/)
 
-Base URL :  http:127.0.0.1:8000/api/v1/
+#### admin(http://127.0.0.1:8000/admin/)
+```
+a. Login using the details of the superuser created
+b. create one or more passenger and driver objects in the driverAPI and passenger API ,clicking on the +Add green link.
+ 
+
+#### passenger Endpoints  (http:127.0.0.1:8000/api/v1/passenger/)
+```
+1. Setting the location by entering the latitude and the longitude : http://127.0.0.1:8000/api/v1/passenger/RequestRide
+2. Requesting a cab by proving latitude and longitude of the destination, set booking_id = 0, use passenger-id and driver_id created previously - http:127.0.0.1:8000/api/v1/passenger/setLocation/
+3.  Check for the ride acceptance by proving the passenger_id and checking the booking_status- http:127.0.0.1:8000/api/v1/passenger/isRideAccepted/
+``` 
  
 ##### Driver Endpoints  (http:127.0.0.1:8000/api/v1/driver/)
 ```
-1. Register a new driver with information -  http:127.0.0.1:8000/api/v1/driver/register/
-2. Login using credentials entered during registration -  http:127.0.0.1:8000/api/v1/driver/login/
-3. Sending Location of driver -  http:127.0.0.1:8000/api/v1/driver/send_location/
-4. Get Travel history - http:127.0.0.1:8000/api/v1/driver/travelhistory/
-5. Logout -  http:127.0.0.1:8000/api/v1/driver/logout/
-```
-#### NOTE : while signing up with new driver, logout if you are already logged in, same for passenger
+1. See all available rides by entering source and destination address - http:127.0.0.1:8000/api/v1/driver/available_passengers/
+2. Accepting the cab and changing the booking_status = 1 and deleting the availaible rides from the list of available rides.
+- http://127.0.0.1:8000/api/v1/driver/accept_cab
 
-##### Passenger Endpoints  (http:127.0.0.1:8000/api/v1/passenger/)
 ```
-1. Register a new passenger with information -  http:127.0.0.1:8000/api/v1/passenger/register/
-2. Login using credentials entered during registration -  http:127.0.0.1:8000/api/v1/passenger/login/
-3. See all available cabs by entering source and destination address - http:127.0.0.1:8000/api/v1/passenger/available_cabs/
-4. Requesting a cab from list of available cabs by entering the car no - http:127.0.0.1:8000/api/v1/passenger/bookcab/
-5. Get Travel history - http:127.0.0.1:8000/api/v1/passenger/travelhistory/
-6. Logout -  http:127.0.0.1:8000/api/v1/passenger/logout/
+### Can Use latitude and longitude from - https://www.latlong.net/ 
 ```
+RANGE:[-90,90]
+```
+```
+Simple logging is used.
+logger.info(),logger.warnings(),logger.error() are used.
+```
+
+
 
