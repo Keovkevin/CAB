@@ -1,128 +1,82 @@
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status, permissions
+from .models import requestRide
+from .serializers import setLocationSerializer
+from .serializers import isRideAcceptedSerializer
+from .serializers import PassengerInfoSerializer
 
-from functools import partial
-
-from .models import Passenger, setLocation, requestRide
-from .serializers import PassengerRegistrationSerializer, setLocationSerializer
-from .serializers import PassengerLoginSerializer
-from .serializers import requestRideSerializer
-
+import logging
 
 
-class CustomPermissionsForPassenger(permissions.BasePermission):
-
-    def __init__(self, allowed_methods):
-        self.allowed_methods = allowed_methods
-
-    def has_permission(self, request, view):
-        if 'passenger_id' in request.session.keys():
-            return request.method in self.allowed_methods
+logger = logging.getLogger(__name__)
 
 
-class PassengerRegistration(APIView):
-    """
-    Register a Passenger
+
+class updateLocation(APIView):
 
     """
-    serializer_class = PassengerRegistrationSerializer
-
-    def get(self, request, format=None):
-        customers = Passenger.objects.all()
-        serializer = PassengerRegistrationSerializer(customers, many=True)
-        return Response(serializer.data)
-
-    def post(self, request, format=None):
-        serializer = PassengerRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class PassengerLogin(APIView):
-
-    serializer_class = PassengerLoginSerializer
-
-    def post(self, request, format=None):
-        serializer = PassengerLoginSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            new_data = serializer.data
-            request.session['passenger_id'] = serializer.validated_data["passenger_id"]
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-class  setLocation(APIView):
-
-    """
-    This function gets the locations of all active drivers who are currently driving the cab
+    This function sets the locations of all active passengers who are currently requesting the ride
+    It accepts latitude and longitude as an input
 
     """
     serializer_class = setLocationSerializer
-    permission_classes = (partial(CustomPermissionsForPassenger, ['GET', 'HEAD', 'POST']),)
-
-    def get(self, request, format=None):
-        driver_locations = setLocation.objects.all()
-        serializer = setLocationSerializer(driver_locations, many=True)
-        return Response(serializer.data)
 
     def post(self, request, format=None):
-        passenger_id = request.session['passenger_id']
-        context = {"passenger_id": passenger_id}
-        serializer = setLocationSerializer(data=request.data, context=context)
+        serializer = setLocationSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
+            logger.info("Data persists in the database")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 class RequestRide(APIView):
 
     """
-    This function makes a request to book cab by entering car_no,
-    (selecting an available cab from map i.e tapping on it
-    in real scenario) and arrange a ride.
+    This function makes a request to ride  by entering passenger_id,latitude,longitude,driver_id
 
     """
-    serializer_class = requestRideSerializer
-    permission_classes = (partial(CustomPermissionsForPassenger, ['GET', 'HEAD', 'POST']),)
+
+    serializer_class = PassengerInfoSerializer
 
     def post(self, request, format=None):
-        context = {
-            'passenger_id': request.session['passenger_id'],
-            'source_address': request.session['source_address'],
-            'destination_address': request.session['destination_address'],
-            'booking_status': 0,
-        }
-        serializer = requestRideSerializer(data=request.data, context=context)
+        serializer = PassengerInfoSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            data = {
-                "Success": "Ride requested successfully"
-            }
-            return Response(data, status=status.HTTP_201_CREATED)
+            logger.info("Data persists in the database")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 #
 class isRideAccepted(APIView):
-    def get(self, request, format=None):
-        req = request.GET['passenger_id']
-        ra = list(requestRide.objects.all())
-        for e in ra:
-           if e.passenger_id == req:
-               return e.booking_status
-        return -1
+    """
+       This function makes a checks the booking_status  of ride is changed to 1 or still o by entering passenger_id
+       And logging the info and warnings
 
+    """
 
-class Logout(APIView):
+    serializer_class = isRideAcceptedSerializer
 
-    def get(self, request, format=None):
-        del request.session['passenger_id']
-        data = {'Logout': 'logged out successfully'}
-        return Response(data, status=status.HTTP_200_OK)
+    def post(self, request, format=None):
+        ride_id = request.data['passenger_id']
+
+        all_rides = requestRide.objects.all()
+
+        for ride in all_rides:
+            if str(ride.passenger_id.passenger_id) == ride_id:
+                data = {
+                    "Status": ride.booking_status
+                }
+                logger.info("Status output")
+                return Response(data, status=status.HTTP_201_CREATED)
+
+        error = {
+            "Error": "errorMessage"
+        }
+        logger.warning("Error")
+        return Response(error, status=status.HTTP_400_BAD_REQUEST)
+
 

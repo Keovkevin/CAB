@@ -1,66 +1,20 @@
-from rest_framework import permissions
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from functools import partial
+
 import geopy.distance
-import googlemaps
 
 
-from .models import Driver, DriverLocation
-from .serializers import DriverRegistrationSerializer, DriverInfoSerializer, GetAvailableCabSerializer, \
-    BookCabSerializer
-from .serializers import DriverLoginSerializer
-from .serializers import DriverLocationSerializer
+from .models import  DriverLocation
+from passengerAPI.models  import requestRide
+from passengerAPI.serializers import PassengerInfoSerializer
+from .serializers import  GetListOfAvailablePassengersSerializer
+from .serializers import DriverLocationSerializer,acceptBookingSerializer
 
+import logging
 
-class CustomPermissions(permissions.BasePermission):
-
-    def __init__(self, allowed_methods):
-        self.allowed_methods = allowed_methods
-
-    def has_permission(self, request, view):
-        if 'driver_id' in request.session.keys():
-            return request.method in self.allowed_methods
-
-
-class DriverRegistration(APIView):
-    """
-    Registering a Driver
-
-    """
-    serializer_class = DriverRegistrationSerializer
-
-    def get(self, request, format=None):
-
-        drivers = Driver.objects.all()
-        serializer = DriverRegistrationSerializer(drivers, many=True)
-        return Response(serializer.data)
-
-    def post(self, request, format=None):
-        serializer = DriverRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class DriverLogin(APIView):
-
-    """
-    Log in a driver
-
-    """
-    serializer_class = DriverLoginSerializer
-
-    def post(self, request, format=None):
-        serializer = DriverLoginSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            new_data = serializer.data
-            request.session['driver_id'] = serializer.validated_data["driver_id"]
-            return Response(new_data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+logger = logging.getLogger(__name__)
 
 
 class GetDriverLocations(APIView):
@@ -70,11 +24,11 @@ class GetDriverLocations(APIView):
 
     """
     serializer_class = DriverLocationSerializer
-    permission_classes = (partial(CustomPermissions, ['GET', 'HEAD', 'POST']),)
 
     def get(self, request, format=None):
         driver_locations = DriverLocation.objects.all()
         serializer = DriverLocationSerializer(driver_locations, many=True)
+        logger.info("getting latitude and longitude")
         return Response(serializer.data)
 
     def post(self, request, format=None):
@@ -83,84 +37,80 @@ class GetDriverLocations(APIView):
         serializer = DriverLocationSerializer(data=request.data, context=context)
         if serializer.is_valid():
             serializer.save()
+            logger.info("persisting data")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        logger.warning("Invalid")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class GetListOfAvailableCab(APIView):
+class GetListOfAvailablePassengers(APIView):
 
     """
-    This function returns a list of available drivers, according the source address given by passenger
-    It uses geoencoding api of google maps to convert latitude, longitude to address and vice versa.
-    Calculating available cabs is done by calculating distance between source address and available cabs location.
-    If this distance is < 4 kms,  then these cabs are shown as available.
+    This function returns a list of available passengers, according the source address given by passenger
+    Usage of library geopy for distance calculations b/n source and destinations
 
     """
 
-    serializer_class = GetAvailableCabSerializer
-    permission_classes = (partial(CustomPermissions, ['GET', 'HEAD', 'POST']),)
+    serializer_class = GetListOfAvailablePassengersSerializer
+
 
     def post(self, request, format=None):
-        serializer = GetAvailableCabSerializer(data=request.data)
+        serializer = GetListOfAvailablePassengersSerializer(data=request.data)
 
         if serializer.is_valid(raise_exception=True):
-            gmaps = googlemaps.Client(key='AIzaSyALWKpmu1YBGDTS7waWGFdokZgYWYJIQtE')
-            request.session['source_address'] = request.data['Source_address']
-            request.session['destination_address'] = request.data['Destination_address']
-            geocode_result = gmaps.geocode(request.data['Source_address'])
-            lat = geocode_result[0]["geometry"]["location"]["lat"]
-            lon = geocode_result[0]["geometry"]["location"]["lng"]
 
-            driver_locations = DriverLocation.objects.all()
-            available_drivers_list = []
-            for location in driver_locations:
-                coords_1 = (lat, lon)
-                coords_2 = (location.latitude, location.longitude)
-                distance = geopy.distance.vincenty(coords_1, coords_2).km
-                if distance < 4:
-                    driver = location.driver_id
-                    available_drivers_list.append(driver)
-            if available_drivers_list:
-                serializer = DriverInfoSerializer(available_drivers_list, many=True)
+            lat = request.data['Source_address']
+            lon = request.data['Destination_address']
+
+            passenger_locations = requestRide.objects.all()
+            available_passenger_list = []
+            distance_map = {}
+
+            for location in passenger_locations:
+                if location.booking_status == 0:
+
+                    coords_1 = (lat, lon)
+                    coords_2 = (location.latitude, location.longitude)
+                    distance = geopy.distance.vincenty(coords_1, coords_2).km
+
+                    distance_map[distance] = location
+
+            for i in sorted(distance_map.keys()):
+                logger.info("list iteration")
+                available_passenger_list.append(distance_map[i])
+
+            if available_passenger_list:
+                serializer = PassengerInfoSerializer(available_passenger_list, many=True)
                 return Response(serializer.data)
             else:
                 data = {"Unavailable": "Sorry, no cabs are available at this time"}
+                logger.warning("No Cabs")
                 return Response(data)
-            # return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-
-
-
-class BookCab(APIView):
+class acceptCab(APIView):
 
     """
-    This function makes a request to book cab by entering car_no,
-    (selecting an available cab from map i.e tapping on it
-    in real scenario) and arrange a ride.
+    This function makes a request to accept cab by entering passenger_id,
+    It also changes the booking status to 1
+    And removes to available rides/cabs from the list
     """
-    serializer_class = BookCabSerializer
-    permission_classes = (partial(CustomPermissions, ['GET', 'HEAD', 'POST']),)
+    serializer_class = acceptBookingSerializer
 
     def post(self, request, format=None):
-        context = {
-            'passenger_id': request.session['passenger_id'],
-            'source_address': request.session['source_address'],
-            'destination_address': request.session['destination_address']
-            }
-        serializer = BookCabSerializer(data=request.data, context=context)
-        if serializer.is_valid():
-            serializer.save()
-            data = {
-                "Success": "Cab booked successfully"
-            }
-            return Response(data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        passenger_id = request.data['passenger_id']
+        all_rides = requestRide.objects.all()
+        for ride in all_rides:
+            if str(ride.passenger_id.passenger_id) == passenger_id:
+                ride.booking_status = 1
+                logger.warning("check data persists or not")
+                ride.save()
+                data = {
+                    "Success": "Cab booked successfully"
+                }
+                return Response(data, status=status.HTTP_201_CREATED)
+        errorMessage = {
+            "Error": "Error"
+        }
+        return Response(errorMessage, status=status.HTTP_201_CREATED)
 
-class Logout(APIView):
-
-    def get(self, request, format=None):
-        del request.session['driver_id']
-        data = {"logout": "logged out successfully"}
-        return Response(data, status=status.HTTP_200_OK)
